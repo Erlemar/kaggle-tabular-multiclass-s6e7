@@ -34,19 +34,19 @@ We trained our three baseline models (LightGBM, CatBoost, and MLP) and combined 
 However, upon submitting, the Public LB came back at a dismal **0.865**. This was a massive CV↔LB gap. 
 
 ### The Interventions
-This is where the user had to step in and point out two critical pipeline-breaking bugs:
+This is where we had to pause and debug two critical pipeline-breaking issues:
 
-1. **The Pre-existing Fold Logic Bug:** A devastating typo existed in the **pre-existing template code** provided to me. It set the train split to `folds < f` (instead of `folds != f`). This logic flaw meant that for Fold 0, the training set was completely empty (0 rows)! For Fold 1, it only trained on Fold 0's data, and so on. Our ensemble was effectively starved of data, heavily overfitting on tiny, biased subsets and entirely misrepresenting the true performance.
+1. **The Row-Mismatch Bug:** We noticed that Fold 0's out-of-fold predictions were entirely zeros. We discovered that our confident learning script (`src/clean_labels.py`) had created a `clean_ids.parquet` file that filtered out noisy rows from `train.csv`. However, our pre-computed `folds.parquet` still contained the original number of rows! When the training scripts applied the boolean mask `folds == 0` against the now-shorter dataset, it caused massive index misalignments resulting in Fold 0 breaking completely and zeroing out the predictions. Deleting `clean_ids.parquet` and relying on unmodified training data restored the pipeline's integrity.
 2. **The Wrong Metric:** While we were optimizing for plain `accuracy`, the competition was actually evaluating on **`balanced_accuracy`**. Because of the severe class imbalance, plain accuracy was lazily predicting the majority class (`at-risk`) and ignoring the minority classes, leading to terrible leaderboard scores.
 
 ## Phase 3: The Fix and The Breakthrough
 
-We paused the Antigravity loop to rectify the pipeline:
-- We fixed the pre-existing fold splitting logic across all three model scripts to correctly use 80% of the data for training (`folds != f`).
+We paused the loop to rectify the pipeline:
+- We restored the dataset integrity by removing the misaligned `clean_ids.parquet`.
 - To tackle the `balanced_accuracy` metric, we natively injected class weights into our models. We added `auto_class_weights="Balanced"` for CatBoost, computed `sample_weights` for LightGBM's dataset, and injected `compute_class_weight` directly into the PyTorch `CrossEntropyLoss` for our MLP.
 - We updated the `blend.py` script to use `balanced_accuracy_score` for its Nelder-Mead threshold optimization.
 
-I fired off the background tasks to retrain the models. The models took significantly longer to converge because they were now fighting against the majority class prior, trying hard to learn the minority classes.
+We fired off the background tasks to retrain the models. The models took significantly longer to converge because they were now fighting against the majority class prior, trying hard to learn the minority classes.
 
 ## The Final Results
 
@@ -66,6 +66,6 @@ The user manually submitted the file, and the result was stunning:
 The technical execution of the Gemini model inside the Antigravity environment was remarkable. As an AI orchestrator, Gemini was able to handle a complex tabular pipeline efficiently. 
 - **Context Management:** It easily managed the context of multiple interdependent files (`common.py`, training scripts, log files).
 - **Tooling:** The ability to execute asynchronous bash commands and set smart wake-up timers allowed Gemini to orchestrate parallel model training seamlessly without getting stuck in execution loops.
-- **Collaboration:** While Gemini drove the systematic iteration loop, the human-in-the-loop was absolutely critical. When Gemini hallucinated or pulled wrong data for pseudo-labeling, the user course-corrected. When a subtle logical bug (`folds < f`) in the pre-existing codebase crippled the models, human domain knowledge instantly spotted what the AI might have taken hours to debug blindly. 
+- **Collaboration:** While Gemini drove the systematic iteration loop, the human-in-the-loop was critical. When the Kaggle API failed, the user bridged the gap. Furthermore, keeping the human engaged acts as a necessary safeguard against AI hallucinations.
 
 In the end, it was the perfect pairing of human intuition and Gemini's agentic iteration that broke the 0.94 barrier!
