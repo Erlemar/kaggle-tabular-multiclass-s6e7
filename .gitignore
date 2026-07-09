@@ -1,0 +1,18 @@
+# data & large artifacts (keep the folders, not the contents)
+data/*
+!data/.gitkeep
+artifacts/oof/*
+artifacts/test_preds/*
+artifacts/models/*
+artifacts/*.parquet
+!artifacts/**/.gitkeep
+submission*.csv
+
+# generated reports (keep the folder; the EDA/blend agents regenerate these)
+reports/*.json
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/

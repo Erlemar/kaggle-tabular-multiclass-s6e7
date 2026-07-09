@@ -1,0 +1,20 @@
+# Core
+numpy
+pandas
+pyarrow
+scikit-learn
+pyyaml
+
+# Gradient boosting
+lightgbm
+catboost
+xgboost          # optional 3rd GBM for blend diversity
+
+# Neural (MLP member)
+torch            # CPU or CUDA build as appropriate for the machine
+
+# Tuning (optional, used inside CV only)
+optuna
+
+# Kaggle CLI (submission / data download)
+kaggle

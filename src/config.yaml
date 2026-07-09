@@ -1,0 +1,29 @@
+# =====================================================================
+# The ONE place to configure the competition. Every agent/script reads this.
+# Fill it in during setup (kaggle-new-competition skill), then don't fight it.
+# =====================================================================
+
+competition: "playground-series-s6e7"   # kaggle slug, for `kaggle competitions submit -c <slug>`
+
+# --- data location (relative to the kit root, or an absolute path) ---
+data_dir: "./data"                      # expects train.{csv,parquet}, test.{csv,parquet}, sample_submission.csv
+artifacts_dir: "./artifacts"            # folds/, oof/, test_preds/, models/ land here
+
+# --- columns ---
+id_col: "id"                            # the row id (must match sample_submission)
+target_col: "health_condition"                    # the label column in train
+# classes: leave unset to infer sorted-unique from train[target_col].
+#          set explicitly ONLY if you must match a specific sample_submission column order:
+# classes: ["class_a", "class_b", "class_c"]
+
+# --- metric (set to the competition's EXACT metric) ---
+metric: "balanced_accuracy"                       # logloss | accuracy | macro_f1 | qwk  (extend src/metrics.py for others)
+
+# --- cross-validation (the shared split contract) ---
+n_folds: 5
+fold_scheme: "stratified"               # stratified | stratified_group | group | kfold | time
+group_col: null                         # required if fold_scheme is stratified_group / group
+time_col: null                          # required if fold_scheme is time (rows ordered by this)
+
+# --- reproducibility ---
+seed: 42
